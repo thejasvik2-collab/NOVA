@@ -97,3 +97,64 @@ def delete_task(task_id):
 
     connection.commit()
     connection.close()
+def initialize_notes_table():
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS notes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    connection.commit()
+    connection.close()
+
+
+def add_note(title, content):
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        INSERT INTO notes (title, content)
+        VALUES (?, ?)
+        """,
+        (title, content)
+    )
+
+    connection.commit()
+    connection.close()
+
+
+def get_notes():
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT id, title, content, created_at
+        FROM notes
+        ORDER BY id DESC
+    """)
+
+    notes = cursor.fetchall()
+
+    connection.close()
+
+    return notes
+
+
+def delete_note(note_id):
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "DELETE FROM notes WHERE id = ?",
+        (note_id,)
+    )
+
+    connection.commit()
+    connection.close()
