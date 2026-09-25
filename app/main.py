@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QWidget,
     QFrame,
+    QStackedWidget,
 )
 
 
@@ -38,13 +39,17 @@ class StatCard(QFrame):
 
 
 class NovaWindow(QMainWindow):
+
     def __init__(self):
         super().__init__()
 
         self.setWindowTitle("NOVA")
         self.resize(1100, 700)
 
-        # Main widget
+        # =========================
+        # MAIN WINDOW
+        # =========================
+
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
 
@@ -75,94 +80,104 @@ class NovaWindow(QMainWindow):
         sidebar_layout.addWidget(subtitle)
         sidebar_layout.addSpacing(30)
 
-        buttons = [
-            "🏠  Dashboard",
-            "🤖  Assistant",
-            "✅  Tasks",
-            "📝  Notes",
-            "⏱  Focus",
-            "📊  Analytics",
-            "🖥  PC Monitor",
+        # Navigation buttons
+        navigation = [
+            ("🏠  Dashboard", 0),
+            ("🤖  Assistant", 1),
+            ("✅  Tasks", 2),
+            ("📝  Notes", 3),
+            ("⏱  Focus", 4),
+            ("📊  Analytics", 5),
+            ("🖥  PC Monitor", 6),
         ]
 
-        for text in buttons:
+        self.nav_buttons = []
+
+        for text, page_index in navigation:
+
             button = QPushButton(text)
+
             button.setObjectName("navButton")
             button.setCursor(Qt.PointingHandCursor)
+
+            button.clicked.connect(
+                lambda checked=False, index=page_index:
+                self.change_page(index)
+            )
+
+            self.nav_buttons.append(button)
             sidebar_layout.addWidget(button)
 
         sidebar_layout.addStretch()
 
         settings = QPushButton("⚙  Settings")
         settings.setObjectName("navButton")
+        settings.setCursor(Qt.PointingHandCursor)
+
+        settings.clicked.connect(
+            lambda: self.change_page(7)
+        )
+
         sidebar_layout.addWidget(settings)
 
-        # =========================
-        # DASHBOARD
-        # =========================
-
-        content = QWidget()
-        content_layout = QVBoxLayout(content)
-        content_layout.setContentsMargins(35, 30, 35, 30)
-        content_layout.setSpacing(10)
-
-        title = QLabel("Good afternoon 👋")
-        title.setObjectName("title")
-
-        description = QLabel(
-            "Here's what's happening on your PC."
-        )
-        description.setObjectName("description")
-
-        content_layout.addWidget(title)
-        content_layout.addWidget(description)
-        content_layout.addSpacing(25)
+        self.nav_buttons.append(settings)
 
         # =========================
-        # STAT CARDS
+        # PAGE STACK
         # =========================
 
-        cards_layout = QHBoxLayout()
-        cards_layout.setSpacing(15)
+        self.pages = QStackedWidget()
 
-        self.cpu_card = StatCard("CPU")
-        self.memory_card = StatCard("MEMORY")
-        self.disk_card = StatCard("DISK")
+        # Create pages
+        self.pages.addWidget(self.create_dashboard_page())
+        self.pages.addWidget(self.create_placeholder_page(
+            "🤖 AI Assistant",
+            "Your intelligent desktop assistant."
+        ))
 
-        cards_layout.addWidget(self.cpu_card)
-        cards_layout.addWidget(self.memory_card)
-        cards_layout.addWidget(self.disk_card)
+        self.pages.addWidget(self.create_placeholder_page(
+            "✅ Tasks",
+            "Manage your tasks and daily goals."
+        ))
 
-        content_layout.addLayout(cards_layout)
-        content_layout.addSpacing(25)
+        self.pages.addWidget(self.create_placeholder_page(
+            "📝 Notes",
+            "Create and organize your notes."
+        ))
 
-        # =========================
-        # SYSTEM INFORMATION
-        # =========================
+        self.pages.addWidget(self.create_placeholder_page(
+            "⏱ Focus",
+            "Stay focused with a Pomodoro timer."
+        ))
 
-        system_title = QLabel("System information")
-        system_title.setObjectName("sectionTitle")
+        self.pages.addWidget(self.create_placeholder_page(
+            "📊 Analytics",
+            "View your productivity statistics."
+        ))
 
-        self.system_info = QLabel()
-        self.system_info.setObjectName("systemInfo")
+        self.pages.addWidget(self.create_placeholder_page(
+            "🖥 PC Monitor",
+            "Detailed information about your computer."
+        ))
 
-        content_layout.addWidget(system_title)
-        content_layout.addWidget(self.system_info)
-
-        content_layout.addStretch()
+        self.pages.addWidget(self.create_placeholder_page(
+            "⚙ Settings",
+            "Customize NOVA."
+        ))
 
         main_layout.addWidget(sidebar)
-        main_layout.addWidget(content)
+        main_layout.addWidget(self.pages)
+
+        # Dashboard is active initially
+        self.change_page(0)
 
         # =========================
-        # TIMER
+        # SYSTEM UPDATE TIMER
         # =========================
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_stats)
         self.timer.start(1000)
-
-        self.update_stats()
 
         # =========================
         # STYLE
@@ -209,6 +224,11 @@ class NovaWindow(QMainWindow):
                 color: white;
             }
 
+            #navButton[active="true"] {
+                background-color: #292943;
+                color: white;
+            }
+
             #title {
                 font-size: 30px;
                 font-weight: bold;
@@ -251,9 +271,118 @@ class NovaWindow(QMainWindow):
                 font-size: 13px;
                 padding-top: 5px;
             }
+
+            #placeholderTitle {
+                font-size: 30px;
+                font-weight: bold;
+            }
+
+            #placeholderDescription {
+                color: #888894;
+                font-size: 15px;
+            }
         """)
 
+    # =========================
+    # DASHBOARD PAGE
+    # =========================
+
+    def create_dashboard_page(self):
+
+        page = QWidget()
+
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(35, 30, 35, 30)
+        layout.setSpacing(10)
+
+        title = QLabel("Good afternoon 👋")
+        title.setObjectName("title")
+
+        description = QLabel(
+            "Here's what's happening on your PC."
+        )
+        description.setObjectName("description")
+
+        layout.addWidget(title)
+        layout.addWidget(description)
+        layout.addSpacing(25)
+
+        # Cards
+        cards_layout = QHBoxLayout()
+        cards_layout.setSpacing(15)
+
+        self.cpu_card = StatCard("CPU")
+        self.memory_card = StatCard("MEMORY")
+        self.disk_card = StatCard("DISK")
+
+        cards_layout.addWidget(self.cpu_card)
+        cards_layout.addWidget(self.memory_card)
+        cards_layout.addWidget(self.disk_card)
+
+        layout.addLayout(cards_layout)
+        layout.addSpacing(25)
+
+        system_title = QLabel("System information")
+        system_title.setObjectName("sectionTitle")
+
+        self.system_info = QLabel()
+        self.system_info.setObjectName("systemInfo")
+
+        layout.addWidget(system_title)
+        layout.addWidget(self.system_info)
+
+        layout.addStretch()
+
+        return page
+
+    # =========================
+    # PLACEHOLDER PAGES
+    # =========================
+
+    def create_placeholder_page(self, title_text, description_text):
+
+        page = QWidget()
+
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(50, 45, 50, 45)
+
+        title = QLabel(title_text)
+        title.setObjectName("placeholderTitle")
+
+        description = QLabel(description_text)
+        description.setObjectName("placeholderDescription")
+
+        layout.addWidget(title)
+        layout.addWidget(description)
+
+        layout.addStretch()
+
+        return page
+
+    # =========================
+    # NAVIGATION
+    # =========================
+
+    def change_page(self, index):
+
+        self.pages.setCurrentIndex(index)
+
+        for i, button in enumerate(self.nav_buttons):
+
+            if i == index:
+                button.setProperty("active", True)
+            else:
+                button.setProperty("active", False)
+
+            button.style().unpolish(button)
+            button.style().polish(button)
+
+    # =========================
+    # SYSTEM MONITORING
+    # =========================
+
     def update_stats(self):
+
         cpu = psutil.cpu_percent()
         memory = psutil.virtual_memory().percent
         disk = psutil.disk_usage("/").percent
@@ -270,6 +399,7 @@ class NovaWindow(QMainWindow):
 
 
 def main():
+
     app = QApplication(sys.argv)
 
     window = NovaWindow()
